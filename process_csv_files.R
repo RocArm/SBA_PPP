@@ -8,9 +8,9 @@
 
 # Input/Output
 wd <- getwd()
-folder.in <- paste0(wd, "/csv_files/") 
-folder.out <- paste0(wd, "/Rdata_files/") 
-file.dates <- paste0(wd, "/report_dates.csv") 
+folder.in <- paste0(wd, "/test_read/csv_files/") 
+folder.out <- paste0(wd, "/test_read/Rdata_files/") 
+file.dates <- paste0(wd, "/test_read/report_dates.csv") 
 
 # Files to process
 files.vec <- dir(folder.in, full.names = TRUE)
@@ -28,7 +28,8 @@ make_file.in <- function(date_string) {
   list_out <- list(
     states = paste0(folder.in, "PPP_StateTable", date_string, ".csv"),
     size = paste0(folder.in, "PPP_LoanSizeTable", date_string, ".csv"),
-    rank = paste0(folder.in, "PPP_LenderRankTable", date_string, ".csv")
+    rank = paste0(folder.in, "PPP_LenderRankTable", date_string, ".csv"),
+    sector = paste0(folder.in, "PPP_NAICSTable", date_string, ".csv")
   )
   return(list_out)
 }
@@ -90,11 +91,26 @@ read_reports <- function(date_string) {
     rank.df <- NULL
   }
 
+  if (files.exist["sector"]) {
+    sector.df <- read_csv(
+      file = files.in$sector,
+      col_types = cols(
+        NAICS_Subsector_Desc = col_character(),
+        LoanCount = col_double(),
+        NetDollars = col_double(),
+        PctOfAmount = col_double()
+      )
+    )
+  } else {
+    sector.df <- NULL
+  }
+
   # Combine in a list
   list.out <- list(
     states = states.df,
     size = size.df,
-    rank = rank.df
+    rank = rank.df,
+    sector = sector.df
   )
 
   return(list.out)
@@ -160,10 +176,23 @@ rank.list <- lapply(list.df, function(list) {
 
 rank.df <- do.call("rbind", rank.list)
 
+sector.list <- lapply(list.df, function(list) {
+  if (is.null(list$sector)){
+    return(NULL)
+  } else {
+    sector.df <- list$sector
+    dates.df <- mutate_all(list$dates, ~ as.Date(., format = "%m%d%Y"))
+    return(cbind(sector.df, dates.df))
+  }
+})
+
+sector.df <- do.call('rbind', sector.list)
+
 bytable.list <- list(
   states = states.df,
   size = size.df,
-  rank = rank.df
+  rank = rank.df,
+  sector = sector.df
 )
 save(file = paste0(folder.out, "bytable.Rdata"), bytable.list)
 
