@@ -81,6 +81,7 @@ read_reports <- function(date_string) {
       file = files.in$rank,
       col_types = cols(
         Rank = col_double(),
+        LenderName = col_character(),
         LoanCount = col_double(),
         NetDollars = col_double(),
         AvgLoanSize = col_double(),
